@@ -1,12 +1,21 @@
 export default {
   meta: {
     type: 'layout',
-    docs: { description: '类方法之间空一行' },
+    docs: { description: '类方法之间空一行（注释不算空行）' },
     fixable: 'whitespace',
     schema: [],
   },
   create(context) {
     const sourceCode = context.sourceCode;
+
+    function countRealBlankLines(startLine, endLine) {
+      let count = 0;
+      for (let l = startLine + 1; l < endLine; l++) {
+        if (sourceCode.lines[l - 1].trim() === '') count++;
+      }
+      return count;
+    }
+
     return {
       ClassBody(node) {
         const members = node.body;
@@ -17,10 +26,9 @@ export default {
 
           const prevEnd = sourceCode.getLastToken(prev);
           const currStart = sourceCode.getFirstToken(curr);
-          const gap = currStart.loc.start.line - prevEnd.loc.end.line;
-          const blankLines = gap - 1;
+          const blankLines = countRealBlankLines(prevEnd.loc.end.line, currStart.loc.start.line);
 
-          if (gap !== 2) {
+          if (blankLines !== 1) {
             context.report({
               node: curr,
               message:

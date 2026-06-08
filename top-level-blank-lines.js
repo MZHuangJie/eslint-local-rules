@@ -1,12 +1,20 @@
 export default {
   meta: {
     type: 'layout',
-    docs: { description: '顶层 class/function 之间空两行' },
+    docs: { description: '顶层 class/function 之间空两行（注释不算空行）' },
     fixable: 'whitespace',
     schema: [],
   },
   create(context) {
     const sourceCode = context.sourceCode;
+
+    function countRealBlankLines(startLine, endLine) {
+      let count = 0;
+      for (let l = startLine + 1; l < endLine; l++) {
+        if (sourceCode.lines[l - 1].trim() === '') count++;
+      }
+      return count;
+    }
 
     function isTopLevel(node) {
       if (node.type === 'ClassDeclaration' || node.type === 'FunctionDeclaration') return true;
@@ -33,10 +41,9 @@ export default {
         for (let i = 1; i < topLevel.length; i++) {
           const prevEnd = sourceCode.getLastToken(getNode(topLevel[i - 1].node));
           const currStart = sourceCode.getFirstToken(getNode(topLevel[i].node));
-          const gap = currStart.loc.start.line - prevEnd.loc.end.line;
-          const blankLines = gap - 1;
+          const blankLines = countRealBlankLines(prevEnd.loc.end.line, currStart.loc.start.line);
 
-          if (gap !== 3) {
+          if (blankLines !== 2) {
             context.report({
               node: topLevel[i].node,
               message:

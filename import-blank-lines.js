@@ -1,12 +1,21 @@
 export default {
   meta: {
     type: 'layout',
-    docs: { description: 'import 语句块后需要空一行' },
+    docs: { description: 'import 语句块后需要空一行（注释不算空行）' },
     fixable: 'whitespace',
     schema: [],
   },
   create(context) {
     const sourceCode = context.sourceCode;
+
+    function countRealBlankLines(startLine, endLine) {
+      let count = 0;
+      for (let l = startLine + 1; l < endLine; l++) {
+        if (sourceCode.lines[l - 1].trim() === '') count++;
+      }
+      return count;
+    }
+
     return {
       'Program:exit'() {
         const body = sourceCode.ast.body;
@@ -21,10 +30,9 @@ export default {
 
         const lastImportEnd = sourceCode.getLastToken(body[lastImportIndex]);
         const nextStart = sourceCode.getFirstToken(body[lastImportIndex + 1]);
-        const gap = nextStart.loc.start.line - lastImportEnd.loc.end.line;
-        const blankLines = gap - 1;
+        const blankLines = countRealBlankLines(lastImportEnd.loc.end.line, nextStart.loc.start.line);
 
-        if (gap !== 2) {
+        if (blankLines !== 1) {
           context.report({
             node: body[lastImportIndex + 1],
             message:
